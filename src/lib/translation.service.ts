@@ -59,4 +59,24 @@ export class TranslationService {
   getBrowserLang(){
     return window.navigator.language;
   }
+
+  initTranslations(): Promise<void> {
+    const lang = this.languageSignal();
+
+    return new Promise((resolve) => {
+      this.http
+        .get<{ [key: string]: string }>(`assets/i18n/${lang}.json`)
+        .subscribe({
+          next: (translations) => {
+            this.translations = translations;
+            resolve();
+          },
+          error: (err) => {
+            console.error(`Erro ao carregar traduções para ${lang}`, err);
+            resolve();
+          }
+        }
+      );
+    });
+  }
 }
