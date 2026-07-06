@@ -1,4 +1,4 @@
-import { Pipe, PipeTransform, effect, inject } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
 import { TranslationService } from './translation.service';
 
 @Pipe({
@@ -8,22 +8,18 @@ import { TranslationService } from './translation.service';
 export class TranslationPipe implements PipeTransform {
 
   private translationService = inject(TranslationService);
-  private translatedText = ''; // Armazena a tradução atual
 
-  constructor() {
-    // Recalcula a tradução sempre que o idioma mudar
-    effect(() => {
-      const lang = this.translationService.currentLanguage(); // Observa o Signal
-      this.translatedText = this.translationService.instant(this.currentKey);
-    });
+  transform(key: string | null | undefined, params?: Record<string, unknown>): string {
+
+    if (!key) {
+      return '';
+    }
+
+    // Lê o signal para criar dependência reativa
+    this.translationService.currentLanguage();
+
+    return this.translationService.instant(key, params);
+
   }
 
-  private currentKey: string = ''; // Variável para armazenar a chave atual
-
-  transform(key: string): string {
-    // Atualizamos a chave de tradução atual
-    this.currentKey = key;
-    // Obtém a tradução atual
-    return this.translationService.instant(key);
-  }
 }

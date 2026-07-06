@@ -1,82 +1,136 @@
-import { inject, Injectable, Signal, signal } from '@angular/core';
+import { inject, Service, Signal, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Service()
 export class TranslationService {
 
   private http = inject(HttpClient);
-  private translations: { [key: string]: string } = {};
 
-  // Signal para o idioma atual
-  private languageSignal = signal<string>('pt-BR'); // Define o idioma padrão como inglês
+  private translations = signal<Record<string, string>>({});
 
-  // Getter para o signal, para que o pipe e componentes possam usá-lo
+  private languageSignal = signal<string>('pt-BR');
+
   get currentLanguage(): Signal<string> {
     return this.languageSignal;
   }
 
-  get currentLang() {
+  get currentLang(): string {
     return this.languageSignal();
   }
 
   constructor() {
-    this.loadTranslations(this.languageSignal());
+
+    this.loadTranslations(
+      this.languageSignal()
+    );
+
   }
 
   use(lang: string): void {
-    this.languageSignal.set(lang); // Atualiza o Signal
-    this.loadTranslations(lang);   // Carrega novas traduções
+
+    this.languageSignal.set(lang);
+
+    this.loadTranslations(lang);
+
   }
 
-  // Retorna uma string traduzida com base na chave
-  getTranslation(key: string, params?: any): string {
-    let translation = this.translations[key] || key; // Retorna a chave se a tradução não for encontrada
+  getTranslation(
+    key: string,
+    params?: Record<string, unknown>
+  ): string {
 
-    // Substituir parâmetros dinâmicos, se houver
+    let translation =
+      this.translations()[key] ?? key;
+
+
     if (params) {
-      Object.keys(params).forEach((param) => {
-        translation = translation.replace(`{{${param}}}`, params[param]);
-      });
+
+      Object.entries(params)
+        .forEach(([param, value]) => {
+
+          translation =
+            translation.replace(
+              `{{${param}}}`,
+              String(value)
+            );
+
+        });
+
     }
 
+
     return translation;
+
   }
 
-  instant(key: string, params?: any): string {
+
+  instant(
+    key: string,
+    params?: Record<string, unknown>
+  ): string {
+
     return this.getTranslation(key, params);
+
   }
+
 
   private loadTranslations(lang: string): void {
+
     this.http
-      .get<{ [key: string]: string }>(`assets/i18n/${lang}.json`)
-      .subscribe((translations) => {
-        this.translations = translations;
+      .get<Record<string, string>>(
+        `assets/i18n/${lang}.json`
+      )
+      .subscribe(translations => {
+
+        this.translations.set(translations);
+
       });
+
   }
 
-  getBrowserLang(){
+
+  getBrowserLang(): string {
+
     return window.navigator.language;
+
   }
+
 
   initTranslations(): Promise<void> {
+
     const lang = this.languageSignal();
 
-    return new Promise((resolve) => {
+
+    return new Promise(resolve => {
+
       this.http
-        .get<{ [key: string]: string }>(`assets/i18n/${lang}.json`)
+        .get<Record<string, string>>(
+          `assets/i18n/${lang}.json`
+        )
         .subscribe({
-          next: (translations) => {
-            this.translations = translations;
+
+          next: translations => {
+
+            this.translations.set(translations);
             resolve();
+
           },
-          error: (err) => {
-            console.error(`Erro ao carregar traduções para ${lang}`, err);
+
+          error: err => {
+
+            console.error(
+              `Erro ao carregar traduções para ${lang}`,
+              err
+            );
+
             resolve();
+
           }
-        }
-      );
+
+        });
+
     });
+
   }
+
 }
