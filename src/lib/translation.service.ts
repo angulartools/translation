@@ -1,5 +1,6 @@
 import { inject, Service, Signal, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 
 @Service()
 export class TranslationService {
@@ -8,7 +9,9 @@ export class TranslationService {
 
   private translations = signal<Record<string, string>>({});
 
-  private languageSignal = signal<string>('pt-BR');
+  private languageSignal: ReturnType<typeof signal<string>>;
+
+  private loadSubscription?: Subscription;
 
   get currentLanguage(): Signal<string> {
     return this.languageSignal;
@@ -20,9 +23,10 @@ export class TranslationService {
 
   constructor() {
 
-    this.loadTranslations(
-      this.languageSignal()
-    );
+    const savedLang = localStorage.getItem('lang') || 'pt-BR';
+    this.languageSignal = signal<string>(savedLang);
+
+    this.loadTranslations(savedLang);
 
   }
 
@@ -76,7 +80,9 @@ export class TranslationService {
 
   private loadTranslations(lang: string): void {
 
-    this.http
+    this.loadSubscription?.unsubscribe();
+
+    this.loadSubscription = this.http
       .get<Record<string, string>>(
         `assets/i18n/${lang}.json`
       )
